@@ -1,0 +1,72 @@
+<ion-content [fullscreen]="true">
+  @if (state$ | async; as state) {
+    <main class="page-shell">
+      <header class="screen-heading">
+        <div>
+          <p class="eyebrow">YOUR CARE DAY</p>
+          <h1>Updates</h1>
+          <p class="subheading">Important notes for your care day.</p>
+        </div>
+        <div class="heading-icon amber-icon"><ion-icon name="notifications-outline"></ion-icon></div>
+      </header>
+
+      <section class="summary-card surface-card">
+        <div class="summary-icon"><ion-icon name="checkmark-done-outline"></ion-icon></div>
+        <div class="summary-copy">
+          <strong>{{ unreadCount(state) === 0 ? 'You are all caught up' : unreadCount(state) + ' new ' + (unreadCount(state) === 1 ? 'update' : 'updates') }}</strong>
+          <span>Your updates stay here until you read them.</span>
+        </div>
+        @if (unreadCount(state) > 0) {
+          <ion-button fill="clear" size="small" (click)="markAllAsRead(state)">Mark all read</ion-button>
+        }
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading"><h2>Recent updates</h2></div>
+        @if (visibleNotifications(state).length) {
+          <div class="notification-list">
+            @for (item of visibleNotifications(state); track item.id) {
+              <article class="notification-card surface-card" [class.notification-unread]="item.unread" (click)="markAsRead(item.id, state)" (keydown.enter)="markAsRead(item.id, state)" tabindex="0" role="button" [attr.aria-label]="(item.unread ? 'Unread: ' : '') + item.title">
+                <div class="notification-icon" [class.safety-tone]="item.category === 'safety'" [class.news-tone]="item.category === 'announcement'" [class.payroll-tone]="item.category === 'payroll'" [class.policy-tone]="item.category === 'policy'">
+                  <ion-icon [name]="categoryIcon(item.category)"></ion-icon>
+                </div>
+                <div class="notification-copy">
+                  <div class="notification-title-row"><h3>{{ item.title }}</h3>@if (item.unread) { <span class="unread-dot" aria-label="Unread"></span> }</div>
+                  <p>{{ item.body }}</p>
+                  <small>{{ item.category | titlecase }} · {{ item.time }}</small>
+                </div>
+                <ion-icon class="chevron" name="chevron-forward-outline"></ion-icon>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="empty-card surface-card">
+            <ion-icon name="notifications-off-outline"></ion-icon>
+            <strong>No updates in these categories</strong>
+            <p>Change your preferences to see more.</p>
+          </div>
+        }
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading"><h2>Notification preferences</h2><span>Choose what you would like to receive.</span></div>
+        <div class="preferences-card surface-card">
+          @for (category of categories; track category.key) {
+            <div class="preference-row">
+              <div class="preference-icon"><ion-icon [name]="category.icon"></ion-icon></div>
+              <div class="preference-copy"><strong>{{ category.label }}</strong><span>{{ category.description }}</span></div>
+              <ion-toggle [checked]="state.preferences[category.key]" [attr.aria-label]="category.label + ' notifications'" (ionChange)="togglePreference(category.key)"></ion-toggle>
+            </div>
+          }
+          <div class="preference-row quiet-row">
+            <div class="preference-icon"><ion-icon name="moon-outline"></ion-icon></div>
+            <div class="preference-copy"><strong>Quiet hours</strong><span>10:00 PM – 6:00 AM · on this device</span></div>
+            <ion-toggle [checked]="state.quietHours" aria-label="Quiet hours" (ionChange)="toggleQuietHours()"></ion-toggle>
+          </div>
+        </div>
+      </section>
+
+      <p class="footnote">Sample updates and preferences are stored on this device. Push notifications from your organization are not connected.</p>
+    </main>
+  }
+</ion-content>

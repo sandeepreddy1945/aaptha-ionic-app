@@ -1,0 +1,40 @@
+<ion-header class="chat-header">
+  <ion-toolbar>
+    <ion-buttons slot="start"><ion-button aria-label="Back to home" (click)="goBack()"><ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon></ion-button></ion-buttons>
+    <div class="chat-title-block"><div class="chat-bot-icon"><ion-icon name="sparkles-outline"></ion-icon></div><div><ion-title>Ask Aaptha AI</ion-title><p>Demo employee · {{ shiftContext() }}</p></div></div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <main class="chat-shell">
+    <section class="ai-disclaimer surface-card">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <div><strong>A helpful starting point</strong><p>This is an AI assistant preview, not a person. For urgent safety concerns or a decision that needs a human, contact your coordinator.</p></div>
+    </section>
+
+    <div class="chat-messages" aria-live="polite">
+      @for (message of messages; track message.id) {
+        <div class="message-row" [class.message-outgoing]="message.from === 'employee'">
+          <div class="message-bubble" [class.employee-bubble]="message.from === 'employee'">{{ message.text }}</div>
+        </div>
+      }
+    </div>
+
+    @if (messages.length === 1) {
+      <section class="suggestions">
+        <p class="eyebrow">SUGGESTED QUESTIONS</p>
+        @for (question of suggestions; track question) {
+          <button class="suggestion-button surface-card" (click)="sendMessage(question)"><span>{{ question }}</span><ion-icon name="arrow-up-outline"></ion-icon></button>
+        }
+      </section>
+    }
+  </main>
+</ion-content>
+
+<ion-footer class="chat-footer">
+  <div class="chat-composer">
+    <ion-input aria-label="Message Aaptha AI" [(ngModel)]="draft" placeholder="Ask about work…" (keydown.enter)="sendMessage()"></ion-input>
+    <ion-button class="send-button" aria-label="Send message" [disabled]="!draft.trim()" (click)="sendMessage()"><ion-icon slot="icon-only" name="send-outline"></ion-icon></ion-button>
+  </div>
+  <p>Preview only: messages stay in this session and are not sent to an AI service or saved to an account. Do not enter sensitive personal details.</p>
+</ion-footer>

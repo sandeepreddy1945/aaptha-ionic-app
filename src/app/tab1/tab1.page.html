@@ -1,0 +1,138 @@
+<ion-content [fullscreen]="true" class="home-content">
+  @if (state$ | async; as state) {
+    <main class="page-shell">
+      <header class="brand-header">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true"><ion-icon name="heart-half-outline"></ion-icon></div>
+          <div>
+            <div class="brand-name">Aaptha Care</div>
+            <div class="brand-caption">Care that stays connected</div>
+          </div>
+        </div>
+        <a class="avatar-button" routerLink="/tabs/tab3" aria-label="Open profile">AS</a>
+      </header>
+
+      <section class="greeting-block">
+        <p class="eyebrow">{{ todayLabel() }}</p>
+        <h1>Good morning, {{ state.profile.name.split(' ')[0] }}</h1>
+        <p class="subheading">Your care day, at a glance.</p>
+      </section>
+
+      <section class="visit-card surface-card" aria-labelledby="visit-title">
+        <div class="visit-topline">
+          <div>
+            <p class="eyebrow eyebrow-green">TODAY’S VISIT · SAMPLE SCHEDULE</p>
+            <h2 id="visit-title">Mrs. Lakshmi R.</h2>
+          </div>
+          <div class="visit-icon"><ion-icon name="calendar-outline"></ion-icon></div>
+        </div>
+        <div class="visit-detail"><ion-icon name="time-outline"></ion-icon><span>8:00 AM – 4:00 PM</span></div>
+        <div class="visit-detail address-detail"><ion-icon name="location-outline"></ion-icon><span>Visit address shared after assignment sync</span></div>
+
+        <div class="shift-panel">
+          <div class="shift-status-row">
+            <div class="status-title">
+              <ion-icon [name]="state.shiftStartedAt ? 'checkmark-circle' : 'time-outline'"></ion-icon>
+              <strong>{{ state.shiftStartedAt ? 'Shift in progress' : 'You are not clocked in' }}</strong>
+            </div>
+            @if (state.shiftStartedAt) {
+              <span class="tracking-pill" [class.pill-warning]="state.trackingStatus === 'foreground' || state.trackingStatus === 'unavailable'">{{ trackingLabel(state.trackingStatus) }}</span>
+            }
+          </div>
+          @if (state.shiftStartedAt && state.trackingStatus === 'background') {
+            <p class="muted-copy">Location tracking is active only during this shift. Updates are recorded on this device; secure server sync is not configured.</p>
+          } @else if (state.shiftStartedAt && state.trackingStatus === 'foreground') {
+            <p class="muted-copy">This browser preview does not capture location. Native background tracking is available only in an installed app.</p>
+          } @else if (state.shiftStartedAt && state.trackingStatus === 'unavailable') {
+            <p class="muted-copy">Your shift is active, but location is not being captured. Check permissions and contact your coordinator.</p>
+          } @else if (!state.shiftStartedAt) {
+            <p class="muted-copy">Tracking starts only after you consent and clock in, and stops when you clock out.</p>
+          }
+          @if (state.lastLocationAt) {
+            <p class="last-seen">Last location update · {{ state.lastLocationAt | date:'shortTime' }}</p>
+          }
+          <ion-button expand="block" class="primary-button shift-action" [disabled]="busy || state.trackingStatus === 'starting'" (click)="state.shiftStartedAt ? confirmClockOut() : openClockIn()">
+            <ion-icon slot="start" [name]="state.shiftStartedAt ? 'log-out-outline' : 'checkmark-circle-outline'"></ion-icon>
+            {{ busy ? 'Please wait…' : (state.shiftStartedAt ? 'Clock out' : 'Clock in') }}
+          </ion-button>
+        </div>
+      </section>
+
+      @if (state.contacts.length === 0) {
+        <section class="notice-card" aria-live="polite">
+          <div class="notice-icon"><ion-icon name="shield-checkmark-outline"></ion-icon></div>
+          <div class="notice-copy">
+            <strong>Add a primary emergency contact</strong>
+            <span>Required before clocking in. Your contact details stay on this device in this preview.</span>
+          </div>
+          <ion-button fill="clear" routerLink="/tabs/tab3" aria-label="Add emergency contact"><ion-icon slot="icon-only" name="chevron-forward-outline"></ion-icon></ion-button>
+        </section>
+      }
+
+      <section class="section-block">
+        <div class="section-heading">
+          <h2>Your day</h2>
+          <span>A quick look at what is coming up.</span>
+        </div>
+        <div class="stats-grid">
+          <article class="stat-card surface-card"><div class="stat-icon stat-blue"><ion-icon name="time-outline"></ion-icon></div><strong>{{ state.shiftStartedAt ? elapsed(state.shiftStartedAt) : '—' }}</strong><span>Time on shift</span></article>
+          <article class="stat-card surface-card"><div class="stat-icon stat-violet"><ion-icon name="calendar-outline"></ion-icon></div><strong>2</strong><span>Upcoming visits</span></article>
+          <article class="stat-card surface-card"><div class="stat-icon stat-amber"><ion-icon name="checkbox-outline"></ion-icon></div><strong>1</strong><span>Visit note due</span></article>
+        </div>
+      </section>
+
+      <section class="section-block quick-access">
+        <div class="section-heading"><h2>Quick access</h2></div>
+        <a class="quick-link surface-card" routerLink="/tabs/tab3">
+          <span class="quick-icon green-icon"><ion-icon name="person-outline"></ion-icon></span>
+          <span class="quick-copy"><strong>My profile</strong><small>Personal details and emergency contacts</small></span>
+          <ion-icon class="chevron" name="chevron-forward-outline"></ion-icon>
+        </a>
+        <a class="quick-link surface-card" routerLink="/tabs/tab2">
+          <span class="quick-icon amber-icon"><ion-icon name="notifications-outline"></ion-icon></span>
+          <span class="quick-copy"><strong>Updates</strong><small>Shifts, reminders, and care updates</small></span>
+          @if (unreadCount(state)) {
+            <ion-badge color="danger">{{ unreadCount(state) }}</ion-badge>
+          }
+          <ion-icon class="chevron" name="chevron-forward-outline"></ion-icon>
+        </a>
+        <a class="quick-link surface-card" routerLink="/chat">
+          <span class="quick-icon violet-icon"><ion-icon name="chatbubbles-outline"></ion-icon></span>
+          <span class="quick-copy"><strong>Ask Aaptha AI</strong><small>Get help with work questions</small></span>
+          <ion-icon class="chevron" name="chevron-forward-outline"></ion-icon>
+        </a>
+      </section>
+
+      <section class="sos-section">
+        <ion-button expand="block" class="sos-button" (click)="showSOS(state)">
+          <ion-icon slot="start" name="alert-circle-outline"></ion-icon>
+          Emergency help
+        </ion-button>
+        <p>This preview does not send alerts to dispatch.</p>
+      </section>
+    </main>
+  }
+
+  <ion-modal [isOpen]="consentOpen" (didDismiss)="consentOpen = false" class="consent-modal">
+    <ng-template>
+      <div class="modal-content">
+        <div class="modal-icon"><ion-icon name="location-outline"></ion-icon></div>
+        <p class="eyebrow eyebrow-green">YOUR PRIVACY MATTERS</p>
+        <h2>Location sharing during your shift</h2>
+        <p>When you clock in, Aaptha Care captures your location every two minutes for visit verification and safety. Tracking stops when you clock out. It is never active outside a shift.</p>
+        <ul>
+          <li>A visible device indicator stays on while background tracking is active.</li>
+          <li>Location data is recorded on this device. Secure server sync and a retention service are not connected in this preview.</li>
+          <li>Only continue if your organization has explained its location and privacy policy.</li>
+        </ul>
+        <a class="privacy-link" href="javascript:void(0)" aria-label="Privacy policy is not configured">Privacy policy · ask your coordinator</a>
+        <ion-item lines="none" class="consent-check">
+          <ion-checkbox slot="start" [(ngModel)]="trackingConsent" aria-label="I understand and consent"></ion-checkbox>
+          <ion-label>I understand and consent to shift-only location tracking.</ion-label>
+        </ion-item>
+        <ion-button expand="block" class="primary-button" [disabled]="!trackingConsent || busy" (click)="confirmClockIn()">{{ busy ? 'Starting shift…' : 'Consent and clock in' }}</ion-button>
+        <ion-button expand="block" fill="clear" class="cancel-button" (click)="consentOpen = false">Cancel</ion-button>
+      </div>
+    </ng-template>
+  </ion-modal>
+</ion-content>
