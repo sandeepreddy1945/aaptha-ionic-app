@@ -13,12 +13,12 @@ interface CategoryOption {
 }
 
 @Component({
-  selector: 'app-tab2',
-  templateUrl: 'tab2.page.html',
-  styleUrls: ['tab2.page.scss'],
+  selector: 'app-updates',
+  templateUrl: 'updates.page.html',
+  styleUrls: ['updates.page.scss'],
   standalone: false,
 })
-export class Tab2Page {
+export class UpdatesPage {
   private readonly care = inject(CareAppService);
   readonly state$ = this.care.state$;
   readonly categories: CategoryOption[] = [

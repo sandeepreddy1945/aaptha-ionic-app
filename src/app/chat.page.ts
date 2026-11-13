@@ -52,6 +52,6 @@ export class ChatPage {
   }
 
   goBack(): void {
-    void this.router.navigateByUrl('/tabs/tab1');
+    void this.router.navigateByUrl('/tabs/home');
   }
 }

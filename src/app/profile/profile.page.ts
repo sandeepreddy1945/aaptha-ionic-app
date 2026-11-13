@@ -20,12 +20,12 @@ const EMPTY_CONTACT: ContactDraft = {
 };
 
 @Component({
-  selector: 'app-tab3',
-  templateUrl: 'tab3.page.html',
-  styleUrls: ['tab3.page.scss'],
+  selector: 'app-profile',
+  templateUrl: 'profile.page.html',
+  styleUrls: ['profile.page.scss'],
   standalone: false,
 })
-export class Tab3Page {
+export class ProfilePage {
   private readonly care = inject(CareAppService);
   private readonly alertController = inject(AlertController);
   private readonly router = inject(Router);

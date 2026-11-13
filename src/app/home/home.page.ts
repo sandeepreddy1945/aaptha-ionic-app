@@ -8,12 +8,12 @@ import {
 } from '../services/care-app.service';
 
 @Component({
-  selector: 'app-tab1',
-  templateUrl: 'tab1.page.html',
-  styleUrls: ['tab1.page.scss'],
+  selector: 'app-home',
+  templateUrl: 'home.page.html',
+  styleUrls: ['home.page.scss'],
   standalone: false,
 })
-export class Tab1Page implements OnInit, OnDestroy {
+export class HomePage implements OnInit, OnDestroy {
   private readonly care = inject(CareAppService);
   private readonly alertController = inject(AlertController);
   private readonly router = inject(Router);
@@ -149,7 +149,7 @@ export class Tab1Page implements OnInit, OnDestroy {
         { text: 'Not now', role: 'cancel' },
         {
           text: 'Open profile',
-          handler: () => void this.router.navigateByUrl('/tabs/tab3'),
+          handler: () => void this.router.navigateByUrl('/tabs/profile'),
         },
       ],
     });
