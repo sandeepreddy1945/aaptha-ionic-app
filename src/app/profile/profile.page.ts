@@ -1,6 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { AlertController } from '@ionic/angular';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import { Capacitor } from '@capacitor/core';
+import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 import { Router } from '@angular/router';
 import {
   CareAppService,
@@ -8,6 +11,7 @@ import {
   EmergencyContact,
   ThemeChoice,
 } from '../services/care-app.service';
+import { LocationDatabaseService } from '../services/location-database.service';
 
 type ProfileFieldKey = 'name' | 'email' | 'phone' | 'address';
 type ContactDraft = Omit<EmergencyContact, 'id'>;
@@ -27,6 +31,7 @@ const EMPTY_CONTACT: ContactDraft = {
 })
 export class ProfilePage {
   private readonly care = inject(CareAppService);
+  private readonly locationDatabase = inject(LocationDatabaseService);
   private readonly alertController = inject(AlertController);
   private readonly router = inject(Router);
   readonly state$ = this.care.state$;
@@ -44,6 +49,7 @@ export class ProfilePage {
   editingContactId: string | null = null;
   contactDraft: ContactDraft = { ...EMPTY_CONTACT };
   busy = false;
+  sharingLocationData = false;
 
   initials(name: string): string {
     return name
@@ -186,6 +192,116 @@ export class ProfilePage {
         'Photo unavailable',
         'Allow camera or photo-library access to choose a profile picture.',
       );
+    }
+  }
+
+  async shareLocationData(): Promise<void> {
+    if (this.sharingLocationData) return;
+    if (!Capacitor.isNativePlatform()) {
+      await this.showMessage(
+        'Native app required',
+        'Location export is available from the installed Android or iOS app.',
+      );
+      return;
+    }
+
+    const confirmation = await this.alertController.create({
+      header: 'Share precise location data?',
+      message:
+        'The JSON file contains your exact coordinates and timestamps from the last 48 hours. It will be shared with the app you choose. Only share it with an authorized recipient.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Continue', role: 'confirm' },
+      ],
+    });
+    await confirmation.present();
+    const { role } = await confirmation.onDidDismiss();
+    if (role !== 'confirm') return;
+
+    await this.createAndShareLocationExport();
+  }
+
+  private async createAndShareLocationExport(): Promise<void> {
+    this.sharingLocationData = true;
+    const endTime = Date.now();
+    const startTime = endTime - 48 * 60 * 60 * 1000;
+    const fileName = `aaptha-location-history-${endTime}.json`;
+    let fileCreated = false;
+
+    try {
+      await this.locationDatabase.syncNativeLocationLog(
+        this.care.snapshot.shiftStartedAt,
+      );
+      const locations = await this.locationDatabase.getLocationsSince(startTime);
+      if (locations.length === 0) {
+        await this.showMessage(
+          'No location data found',
+          'There are no saved location records from the last 48 hours.',
+        );
+        return;
+      }
+
+      const canShare = await Share.canShare();
+      if (!canShare.value) {
+        await this.showMessage(
+          'Sharing unavailable',
+          'This device does not support sharing a JSON file.',
+        );
+        return;
+      }
+
+      const exportData = {
+        formatVersion: 1,
+        generatedAt: new Date(endTime).toISOString(),
+        period: {
+          from: new Date(startTime).toISOString(),
+          to: new Date(endTime).toISOString(),
+        },
+        recordCount: locations.length,
+        locations: locations.map((location) => ({
+          shiftStartedAt: location.shift_started_at,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          accuracyMeters: location.accuracy,
+          altitudeMeters: location.altitude,
+          altitudeAccuracyMeters: location.altitude_accuracy,
+          speedMetersPerSecond: location.speed,
+          bearingDegrees: location.bearing,
+          simulated: location.simulated === 1,
+          capturedAt: new Date(location.captured_at).toISOString(),
+        })),
+      };
+
+      const file = await Filesystem.writeFile({
+        path: fileName,
+        data: JSON.stringify(exportData, null, 2),
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
+      });
+      fileCreated = true;
+      await Share.share({
+        title: 'Aaptha Care location history',
+        text: `${locations.length} location records · last 48 hours`,
+        files: [file.uri],
+        dialogTitle: 'Share location history',
+      });
+    } catch {
+      await this.showMessage(
+        'Could not share location data',
+        'The location export could not be prepared or shared. Please try again.',
+      );
+    } finally {
+      if (fileCreated) {
+        try {
+          await Filesystem.deleteFile({
+            path: fileName,
+            directory: Directory.Cache,
+          });
+        } catch {
+          console.warn('Could not remove the temporary location export file.');
+        }
+      }
+      this.sharingLocationData = false;
     }
   }
 

@@ -1,8 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { App } from '@capacitor/app';
 import { BehaviorSubject } from 'rxjs';
 import { Capacitor } from '@capacitor/core';
 import { Geolocation } from '@capacitor/geolocation';
 import { BackgroundGeolocation } from '@capgo/background-geolocation';
+import { LocationDatabaseService } from './location-database.service';
 
 export type TrackingStatus =
   'off' | 'starting' | 'background' | 'foreground' | 'unavailable';
@@ -117,6 +119,7 @@ function getStoredShift(): string | null {
 
 @Injectable({ providedIn: 'root' })
 export class CareAppService {
+  private readonly locationDatabase = inject(LocationDatabaseService);
   private readonly stateSubject = new BehaviorSubject<AppState>({
     profile: {
       name: 'Asha Sharma',
@@ -149,6 +152,15 @@ export class CareAppService {
 
   constructor() {
     this.applyTheme(this.snapshot.theme);
+    if (Capacitor.isNativePlatform()) {
+      void App.addListener('resume', () => {
+        void this.locationDatabase
+          .syncNativeLocationLog(this.snapshot.shiftStartedAt)
+          .catch(() => {
+            console.warn('Location history sync deferred; entries remain in the native SQLite log.');
+          });
+      });
+    }
   }
 
   private readTheme(): ThemeChoice {
@@ -245,6 +257,11 @@ export class CareAppService {
         permission.backgroundLocation === 'granted' ||
         permission.backgroundLocation === 'always';
 
+      await this.locationDatabase.initialize();
+      await this.locationDatabase.syncNativeLocationLog(
+        this.snapshot.shiftStartedAt,
+      );
+
       await BackgroundGeolocation.start(
         {
           backgroundTitle: 'Aaptha Care · Shift tracking',
@@ -255,15 +272,25 @@ export class CareAppService {
           distanceFilter: 0,
           minIntervalMs: 2 * 60 * 1000,
           locationLog: true,
-          locationLogMaxEntries: 20000,
+          locationLogSqlite: true,
+          locationLogMaxEntries: 65000,
         },
         (location, error) => {
           if (error) {
             this.update({ trackingStatus: 'unavailable' });
             return;
           }
-          if (location)
+          if (location) {
             this.update({ lastLocationAt: location.time ?? Date.now() });
+            const shiftStartedAt = this.snapshot.shiftStartedAt;
+            setTimeout(() => {
+              void this.locationDatabase
+                .syncNativeLocationLog(shiftStartedAt)
+                .catch(() => {
+                  console.warn('Location history sync deferred; entries remain in the native SQLite log.');
+                });
+            }, 250);
+          }
         },
       );
 
@@ -279,9 +306,17 @@ export class CareAppService {
   }
 
   async endShift(): Promise<void> {
+    const shiftStartedAt = this.snapshot.shiftStartedAt;
     try {
       if (Capacitor.isNativePlatform()) await BackgroundGeolocation.stop();
     } finally {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await this.locationDatabase.syncNativeLocationLog(shiftStartedAt);
+        } catch {
+          console.warn('Location history sync deferred; entries remain in the native SQLite log.');
+        }
+      }
       try {
         localStorage.removeItem(SHIFT_STORAGE_KEY);
       } catch {

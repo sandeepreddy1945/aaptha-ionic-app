@@ -7,6 +7,16 @@ const config: CapacitorConfig = {
   android: {
     useLegacyBridge: true,
   },
+  plugins: {
+    CapacitorSQLite: {
+      androidIsEncryption: true,
+      iosIsEncryption: true,
+      iosDatabaseLocation: 'Library/CapacitorDatabase',
+    },
+    BackgroundGeolocation: {
+      locationLogSqlite: true,
+    },
+  },
 };
 
 export default config;

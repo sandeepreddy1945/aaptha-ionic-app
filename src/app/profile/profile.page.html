@@ -74,6 +74,21 @@
       </section>
 
       <section class="section-block">
+        <div class="section-heading"><h2>Location data</h2><span>Share a copy for authorized records.</span></div>
+        <div class="profile-fields surface-card">
+          <button class="profile-field" [disabled]="sharingLocationData" (click)="shareLocationData()">
+            <span class="field-icon"><ion-icon name="share-outline"></ion-icon></span>
+            <span class="field-copy">
+              <strong>{{ sharingLocationData ? 'Preparing location export…' : 'Share location data' }}</strong>
+              <small>JSON file · Last 48 hours</small>
+            </span>
+            <ion-icon class="chevron" name="chevron-forward-outline"></ion-icon>
+          </button>
+          <p class="privacy-note">Includes precise coordinates and timestamps. Choose an authorized recipient in the share sheet.</p>
+        </div>
+      </section>
+
+      <section class="section-block">
         <div class="section-heading"><h2>Help and security</h2></div>
         <div class="profile-fields surface-card">
           <button class="profile-field" (click)="openChat()"><span class="field-icon violet-icon"><ion-icon name="chatbubbles-outline"></ion-icon></span><span class="field-copy"><strong>Ask Aaptha AI</strong><small>Questions about shifts, HR, and care</small></span><ion-icon class="chevron" name="chevron-forward-outline"></ion-icon></button>
